@@ -6,10 +6,21 @@ import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Menu() {
-  const { data: menuItems, isLoading } = useMenu();
+  const { data: menuItems, isLoading, error } = useMenu();
 
   const mains = menuItems?.filter(item => item.category === 'main') || [];
   const desserts = menuItems?.filter(item => item.category === 'dessert') || [];
+
+  if (error) {
+    return (
+      <Layout title="menu" backTo="/">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 px-6 text-center">
+          <p className="text-red-400 font-medium">Unable to load menu.</p>
+          <p className="text-zinc-500 text-sm">Please ensure the database is connected and initialized.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="menu" backTo="/">

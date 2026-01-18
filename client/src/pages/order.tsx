@@ -10,7 +10,7 @@ import { format, addDays } from "date-fns";
 
 export default function OrderPage() {
   const [, setLocation] = useLocation();
-  const { data: menuItems } = useMenu();
+  const { data: menuItems, error } = useMenu();
   const { mutate: createOrder, isPending, isSuccess } = useCreateOrder();
 
   const [mainId, setMainId] = useState<string>("");
@@ -34,6 +34,17 @@ export default function OrderPage() {
     }
     return total;
   };
+
+  if (error) {
+    return (
+      <Layout title="order" showBack backTo="/menu">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 px-6 text-center">
+          <p className="text-red-400 font-medium">Unable to load menu.</p>
+          <p className="text-zinc-500 text-sm">Please ensure the database is connected and initialized.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   const handleSubmit = () => {
     if (!mainId || !pickupDate) return;
