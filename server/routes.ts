@@ -3,6 +3,45 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import type { Order } from "@shared/schema";
+
+async function sendOrderNotification(order: Order) {
+  try {
+    const topic = process.env.NTFY_TOPIC || "food-prep-orders";
+    
+    let message = `New Order #${order.id}\n`;
+    message += `Pickup: ${order.pickupDate}\n`;
+    
+    if (order.mainItemId) {
+      const main = await storage.getMenuItem(order.mainItemId);
+      if (main) {
+        message += `Main: ${order.mainQuantity}x ${main.name}\n`;
+      }
+    }
+    
+    if (order.dessertItemId) {
+      const dessert = await storage.getMenuItem(order.dessertItemId);
+      if (dessert) {
+        message += `Dessert: ${order.dessertQuantity}x ${dessert.name}\n`;
+      }
+    }
+    
+    message += `Total: $${(order.totalPrice / 100).toFixed(2)}`;
+
+    await fetch(`https://ntfy.sh/${topic}`, {
+      method: 'POST',
+      body: message,
+      headers: {
+        'Title': 'New Food Order Received',
+        'Priority': 'high',
+        'Tags': 'shallow_pan_of_food'
+      }
+    });
+    console.log('Notification sent to ntfy.sh/' + topic);
+  } catch (error) {
+    console.error('Failed to send notification:', error);
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -28,6 +67,12 @@ export async function registerRoutes(
     try {
       const input = api.orders.create.input.parse(req.body);
       const order = await storage.createOrder(input);
+      
+      // Send notification asynchronously
+      sendOrderNotification(order).catch(err => {
+        console.error("Background notification failed:", err);
+      });
+
       res.status(201).json(order);
     } catch (err) {
       if (err instanceof z.ZodError) {
