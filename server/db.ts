@@ -10,5 +10,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Add SSL support for production (Supabase/Neon)
+const connectionString = process.env.DATABASE_URL;
+const isProduction = process.env.NODE_ENV === "production" || connectionString.includes("supabase") || connectionString.includes("neon");
+
+export const pool = new Pool({ 
+  connectionString,
+  ssl: isProduction ? { rejectUnauthorized: false } : undefined,
+});
+
 export const db = drizzle(pool, { schema });
